@@ -1,0 +1,29 @@
+Thank you for choosing and using our assets!
+
+For detailed information and guidance on assets, please refer to the LayerLab User Asset Guide. 
+You can access the guide by copying and pasting the following link into your browser:
+--------------------------------------
+https://tinyurl.com/LayerLabAssetGuide
+--------------------------------------
+
+
+## Bundle Asset User Guide
+
+When you purchase a bundle pack, you are buying access to multiple connected assets at a discounted price.
+Please note that the bundle pack itself does not contain files. Instead, it grants you free access to the individual assets included in the bundle.
+For more details, please refer to the "GUI Bundle Asset" menu via the link above.
+
+1. Free Access:
+After purchasing a bundle pack, all assets connected to the bundle will be available for free.
+   
+2. Download Process:
+You can download each asset individually at no cost through the Package Manager.
+
+3. Alternative Access:
+Alternatively, visit each asset's product page and click the "Open in Unity" button.
+
+* Important Note:
+Please note that it may take some time for the Asset Store system to update and reflect the free status of your assets. 
+Rest assured, this is not an error with the asset pack itself.
+If this happens, try downloading through the Package Manager or wait a moment before trying again.
+
