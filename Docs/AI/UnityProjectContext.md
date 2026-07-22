@@ -5,16 +5,16 @@
 ## Project Summary
 
 - Project root: `C:/Github/action_hunters/action_hunters`
-- Last analyzed: 2026-07-21
-- Last analyzed commit: `71f8aa5`
-- State: early prototype; first-party gameplay architecture is not established yet.
+- Last analyzed: 2026-07-22
+- Last analyzed commit: `0726349` (working tree contains the offline-demo implementation)
+- State: Phase 1 offline vertical slice is playable in `Main`; production networking is still a later phase.
 
 ## Confirmed Environment
 
 - Unity version: Unity 6.3 LTS, `6000.3.8f1`
 - Render pipeline: Universal Render Pipeline `17.3.0`
 - Input system: Unity Input System `1.18.0` with the template input action asset
-- Target platforms: Windows is the current build target; broader support is not yet defined
+- Active Editor build target: WebGL; a fresh player build has not been produced for this vertical slice
 
 ## Important Packages And Frameworks
 
@@ -45,21 +45,22 @@
 
 | Assembly | Responsibility | Key references | Notes |
 | --- | --- | --- | --- |
-| `Assembly-CSharp` | First-party runtime scripts | Unity modules, installed packages | No custom runtime asmdef yet |
-| `Assembly-CSharp-Editor` | First-party editor tooling | UnityEditor, Assembly-CSharp | Scene builder lives under `Assets/ActionHunters/Editor` |
+| `ActionHunters.Runtime` | Offline demo rules, combatants, match flow, camera, and HUD | Unity, Input System | First-party runtime asmdef under `Assets/ActionHunters/Runtime` |
+| `ActionHunters.EditModeTests` | Pure gameplay-rule tests | Runtime assembly, NUnit, Test Framework | Nine EditMode cases |
+| `Assembly-CSharp-Editor` | First-party editor tooling | UnityEditor, runtime and vendor assemblies | Scene builder lives under `Assets/ActionHunters/Editor` |
 | `Fusion.Unity` | Photon Fusion Unity integration | Fusion runtime assemblies | Vendor-owned; do not edit |
 
 ## Scenes And Startup Flow
 
 - Build scenes: `Assets/Scenes/Main.unity`
 - Likely startup scene: `Main`
-- Scene loading flow: Fusion bootstrap prototype; production loading flow is not established
+- Scene loading flow: `Main` starts the local `Offline_Demo_VerticalSlice`. The existing Fusion bootstrap remains serialized but inactive until the networking phase.
 
 ## Architecture
 
 | Pattern | Finding | Confidence | Evidence |
 | --- | --- | --- | --- |
-| Gameplay architecture | Not established | Confirmed | No first-party runtime gameplay scripts before onboarding |
+| Gameplay architecture | Config-driven local match controller with combatant, camera, and HUD components | Confirmed | `Assets/ActionHunters/Runtime`, generated `Main` references |
 | Networking topology | Host Mode is the MVP working assumption | Likely | Project execution plan and Fusion bootstrap spike |
 | Scene composition | Main scene is the current composition root; its generated hierarchy is asset-informed and idempotent | Confirmed | Build Settings, `ActionHuntersSceneBuilder.cs` |
 
@@ -72,10 +73,10 @@
 
 ## Testing And Validation
 
-- EditMode tests: none yet
+- EditMode tests: 9/9 passing for hiring, winner resolution, and timer formatting (verified in Unity Test Runner on 2026-07-22)
 - PlayMode tests: none yet
 - CI/build validation: none detected
-- Current baseline: `Main` scene builder uses imported production assets directly; validation is repeated after each generated-scene rebuild
+- Current baseline: solution compile succeeds with zero warnings/errors; `Main` scene generation is idempotent; an Editor Play smoke ran for about 2.5 minutes with zero Console warnings/errors
 
 ## Available Unity Tooling
 
@@ -85,19 +86,21 @@
 | Unity Console read | available through visible Editor UI | Console tab and counters |
 | Scene inspection | available through files and Editor UI | `Main.unity`, Hierarchy |
 | Direct Unity MCP bridge | unavailable | no Unity-side MCP provider detected |
-| Test runner automation | unverified | package installed, no bridge or tests detected |
+| Test runner automation | available through visible Editor UI | 9/9 EditMode run verified |
 
 ## Important Constraints
 
-- Preserve user-created `Main.unity` and Build Settings changes.
+- Treat `ActionHuntersSceneBuilder.cs` as the source of truth for generated content under `__ActionHunters`; direct edits under that root will be replaced on regeneration.
+- Preserve the user-adjusted blue/red pipe positions in the builder source when regenerating `Main`.
 - Treat `Assets/Photon/` as vendor code.
 - Keep authoritative multiplayer simulation in Fusion callbacks, not ordinary `Update`.
 - Do not expose or copy the configured Photon App ID.
 
 ## Unknowns And Confidence
 
-- Final input mappings, gameplay architecture, target hardware, and production scene flow are unknown.
+- Production target hardware, online lobby/session UX, authoritative state ownership, and production scene flow remain unresolved.
 - Host Mode remains a working assumption until a two-peer spike validates it.
+- The offline slice intentionally uses flat transform movement and arena bounds; navigation/collision authoring is deferred.
 - The Notion-referenced asset packages are imported and mapped in `Docs/AI/ActionHuntersAssetMapping.md`. GUI Pro Bundle1 itself contains only the publisher handoff/readme, so the cached GUI Pro Minimal Game Dark package supplies the actual HUD sprites.
 
 ## Source Files Inspected
@@ -111,6 +114,9 @@
 - `Assets/Photon/Fusion/Runtime/FusionBootstrap.cs`
 - `Assets/Photon/Fusion/Runtime/NetworkSceneManagerDefault.cs`
 - `Assets/ActionHunters/Editor/ActionHuntersSceneBuilder.cs`
+- `Assets/ActionHunters/Runtime/*.cs`
+- `Assets/ActionHunters/Tests/EditMode/DemoGameRulesTests.cs`
+- `Assets/ActionHunters/Config/DemoGameConfig.asset`
 - `Docs/AI/ActionHuntersAssetMapping.md`
 
 <!-- unity-onboarding:generated:end -->

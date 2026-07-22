@@ -33,6 +33,6 @@ The referenced packages are imported into this Unity project and `Main.unity` no
 ## Current arena scale
 
 - Playable island blockout: approximately `50 x 34` Unity units, expanded from the original `30 x 20` prototype.
-- Team bases sit at `x = +/-18`; hunter displays sit at `x = +/-21.5`.
+- Team bases and gameplay hunter spawns sit near `x = +/-18`; the separate showcase displays sit at `x = +/-21.5`.
 - North/south contest routes and monster camps sit near `z = +/-10.5`, leaving a larger central approach and meaningful flanking space.
 - Outer rails sit near `x = +/-24.35` and `z = +/-16.35`.
