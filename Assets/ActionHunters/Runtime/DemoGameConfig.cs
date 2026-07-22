@@ -63,6 +63,9 @@ namespace ActionHunters.Runtime
         [Header("Simulation")]
         [SerializeField, Min(0.05f)] private float aiThinkInterval = 0.25f;
         [SerializeField] private Vector2 arenaExtents = new Vector2(23f, 15f);
+        [SerializeField, Min(0.5f)] private float jumpHeight = 3.2f;
+        [SerializeField, Min(0.1f)] private float gravityMultiplier = 2.4f;
+        [SerializeField, Min(0)] private int flagCaptureScore = 5;
         [SerializeField] private List<DemoRoleStats> roleStats = new List<DemoRoleStats>();
 
         public float MatchDuration => matchDuration;
@@ -78,6 +81,9 @@ namespace ActionHunters.Runtime
         public int BossKillScore => bossKillScore;
         public float AiThinkInterval => aiThinkInterval;
         public Vector2 ArenaExtents => arenaExtents;
+        public float JumpHeight => jumpHeight > 0f ? jumpHeight : 3.2f;
+        public float GravityMultiplier => gravityMultiplier > 0f ? gravityMultiplier : 2.4f;
+        public int FlagCaptureScore => flagCaptureScore > 0 ? flagCaptureScore : 5;
 
         public DemoRoleStats GetStats(DemoRole role)
         {
@@ -107,6 +113,9 @@ namespace ActionHunters.Runtime
             bossKillScore = 5;
             aiThinkInterval = 0.25f;
             arenaExtents = new Vector2(23f, 15f);
+            jumpHeight = 3.2f;
+            gravityMultiplier = 2.4f;
+            flagCaptureScore = 5;
             roleStats = new List<DemoRoleStats>
             {
                 Stats(DemoRole.Guardian, 230f, 4.4f, 22f, 2.2f, 0.9f, 9f, 9f),

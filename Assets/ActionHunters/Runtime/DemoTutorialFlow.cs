@@ -14,6 +14,7 @@ namespace ActionHunters.Runtime
     public enum DemoTutorialSignal
     {
         Moved,
+        Jumped,
         BasicAttackHit,
         SkillUsed,
         MonsterDefeated,
@@ -25,18 +26,20 @@ namespace ActionHunters.Runtime
     {
         private const float RequiredMoveDistance = 1.5f;
         private float _movedDistance;
+        private bool _hasJumped;
 
         public DemoTutorialStep CurrentStep { get; private set; }
         public int CompletedStepCount => (int)CurrentStep;
         public int StepCount => (int)DemoTutorialStep.Complete;
         public float StepProgress => CurrentStep == DemoTutorialStep.Move
-            ? UnityEngine.Mathf.Clamp01(_movedDistance / RequiredMoveDistance)
+            ? UnityEngine.Mathf.Clamp01(_movedDistance / RequiredMoveDistance) * 0.5f + (_hasJumped ? 0.5f : 0f)
             : CurrentStep == DemoTutorialStep.Complete ? 1f : 0f;
 
         public void Reset()
         {
             CurrentStep = DemoTutorialStep.Move;
             _movedDistance = 0f;
+            _hasJumped = false;
         }
 
         public bool Report(DemoTutorialSignal signal, float amount = 1f)
@@ -48,13 +51,20 @@ namespace ActionHunters.Runtime
 
             if (CurrentStep == DemoTutorialStep.Move)
             {
-                if (signal != DemoTutorialSignal.Moved || amount <= 0f)
+                if (signal == DemoTutorialSignal.Moved && amount > 0f)
+                {
+                    _movedDistance += amount;
+                }
+                else if (signal == DemoTutorialSignal.Jumped)
+                {
+                    _hasJumped = true;
+                }
+                else
                 {
                     return false;
                 }
 
-                _movedDistance += amount;
-                if (_movedDistance < RequiredMoveDistance)
+                if (_movedDistance < RequiredMoveDistance || !_hasJumped)
                 {
                     return false;
                 }
@@ -86,7 +96,7 @@ namespace ActionHunters.Runtime
         {
             return step switch
             {
-                DemoTutorialStep.Move => "1 / 6   MOVE",
+                DemoTutorialStep.Move => "1 / 6   MOVE + JUMP",
                 DemoTutorialStep.BasicAttack => "2 / 6   BASIC ATTACK",
                 DemoTutorialStep.Skill => "3 / 6   ROLE SKILL",
                 DemoTutorialStep.HuntMonster => "4 / 6   EARN GOLD",
@@ -100,13 +110,13 @@ namespace ActionHunters.Runtime
         {
             return step switch
             {
-                DemoTutorialStep.Move => "Move 1.5m with WASD or the left stick.",
+                DemoTutorialStep.Move => "Move 1.5m with WASD / stick, then jump with SPACE / A.",
                 DemoTutorialStep.BasicAttack => "Approach a monster and hit it with LMB or RT.",
-                DemoTutorialStep.Skill => "Use the Guardian shockwave with SPACE or RB.",
+                DemoTutorialStep.Skill => "Use the Guardian shockwave with C or gamepad RB.",
                 DemoTutorialStep.HuntMonster => "Defeat a neutral monster. One kill raises 30G to the 60G hire cost.",
-                DemoTutorialStep.HireHunter => "Return to the BLUE base and press E or gamepad A.",
+                DemoTutorialStep.HireHunter => "Return to the BLUE base and press E or gamepad Y.",
                 DemoTutorialStep.SwitchHunter => "Press 2 / TAB or D-pad to control the new hunter.",
-                _ => "Defeat enemy hunters for 10 points. Hold the lead when the timer reaches zero."
+                _ => "Capture the enemy flag (+5), use elemental stations, pads and pipe cannons, then hold the lead."
             };
         }
 

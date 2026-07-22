@@ -36,6 +36,10 @@ namespace ActionHunters.Editor
         private const string WindHitPath = "Assets/PixPlays/ElementalProjectiles/Windbullet/Version_BuiltIn/WindbulletHit/WindbulletHit.prefab";
         private const string FireHitPath = "Assets/PixPlays/ElementalProjectiles/Fireball/Version_BuiltIn/FireballHit/FireballHit.prefab";
         private const string WaterHitPath = "Assets/PixPlays/ElementalProjectiles/Waterball/Version_BuiltIn/WaterballHit/WaterballHit.prefab";
+        private const string WaterShieldPath = "Assets/PixPlays/ElementalShields/WaterShield/Version_BuiltIn/WaterShield.prefab";
+        private const string FireProjectilePath = "Assets/PixPlays/ElementalProjectiles/Fireball/Version_BuiltIn/Fireball.prefab";
+        private const string WindBeamPath = "Assets/PixPlays/ElementalBeams/WindBeam/Version_BuiltIn/WindBeam.prefab";
+        private const string EarthAoePath = "Assets/PixPlays/ElementalAOE/EarthAOE/Version_BuiltIn/EarthSlamSpikesAoeVFX.prefab";
 
         [MenuItem("Action Hunters/Build Asset-Informed Main Scene")]
         public static void BuildAssetInformedMainScene()
@@ -208,28 +212,66 @@ namespace ActionHunters.Editor
             CreateCollisionBox("South_Boundary", new Vector3(0f, 1.75f, -16.7f), new Vector3(50f, 3.5f, 0.6f), collision);
 
             var props = CreateGroup("Platformer_Props_And_Trap_Silhouettes", arena);
-            CreatePlatformerAssetSet(props);
+            CreatePlatformerAssetSet(props, palette);
         }
 
-        private static void CreatePlatformerAssetSet(Transform parent)
+        private static void CreatePlatformerAssetSet(Transform parent, IReadOnlyDictionary<string, Material> palette)
         {
             var platforms = CreateGroup("Imported_KayKit_Platformer_Prefabs", parent);
 
-            InstantiatePrefab(PlatformerPath("blue", "platform_4x4x1_blue"), "Blue_North_Platform", new Vector3(-10.5f, 1.3f, 10.5f), Quaternion.identity, new Vector3(1.35f, 1f, 1.35f), platforms);
-            InstantiatePrefab(PlatformerPath("blue", "platform_4x4x1_blue"), "Blue_South_Platform", new Vector3(-10.5f, 1.3f, -10.5f), Quaternion.identity, new Vector3(1.35f, 1f, 1.35f), platforms);
-            InstantiatePrefab(PlatformerPath("red", "platform_4x4x1_red"), "Red_North_Platform", new Vector3(10.5f, 1.3f, 10.5f), Quaternion.identity, new Vector3(1.35f, 1f, 1.35f), platforms);
-            InstantiatePrefab(PlatformerPath("red", "platform_4x4x1_red"), "Red_South_Platform", new Vector3(10.5f, 1.3f, -10.5f), Quaternion.identity, new Vector3(1.35f, 1f, 1.35f), platforms);
+            AddSimpleBoxCollider(InstantiatePrefab(PlatformerPath("blue", "platform_4x4x1_blue"), "Blue_North_Platform", new Vector3(-10.5f, 1.3f, 10.5f), Quaternion.identity, new Vector3(1.35f, 1f, 1.35f), platforms), new Vector3(0f, 0.5f, 0f), new Vector3(4f, 1f, 4f));
+            AddSimpleBoxCollider(InstantiatePrefab(PlatformerPath("blue", "platform_4x4x1_blue"), "Blue_South_Platform", new Vector3(-10.5f, 1.3f, -10.5f), Quaternion.identity, new Vector3(1.35f, 1f, 1.35f), platforms), new Vector3(0f, 0.5f, 0f), new Vector3(4f, 1f, 4f));
+            AddSimpleBoxCollider(InstantiatePrefab(PlatformerPath("red", "platform_4x4x1_red"), "Red_North_Platform", new Vector3(10.5f, 1.3f, 10.5f), Quaternion.identity, new Vector3(1.35f, 1f, 1.35f), platforms), new Vector3(0f, 0.5f, 0f), new Vector3(4f, 1f, 4f));
+            AddSimpleBoxCollider(InstantiatePrefab(PlatformerPath("red", "platform_4x4x1_red"), "Red_South_Platform", new Vector3(10.5f, 1.3f, -10.5f), Quaternion.identity, new Vector3(1.35f, 1f, 1.35f), platforms), new Vector3(0f, 0.5f, 0f), new Vector3(4f, 1f, 4f));
 
             AddSimpleBoxCollider(InstantiatePrefab(PlatformerPath("blue", "chest_large_blue"), "Blue_Supply_Chest", new Vector3(-14.5f, 0.08f, 5.5f), Quaternion.Euler(0f, 35f, 0f), Vector3.one, platforms), new Vector3(0f, 0.65f, 0f), new Vector3(1.5f, 1.3f, 1.2f));
             AddSimpleBoxCollider(InstantiatePrefab(PlatformerPath("red", "chest_large_red"), "Red_Supply_Chest", new Vector3(14.5f, 0.08f, -5.5f), Quaternion.Euler(0f, 215f, 0f), Vector3.one, platforms), new Vector3(0f, 0.65f, 0f), new Vector3(1.5f, 1.3f, 1.2f));
-            AddSimpleBoxCollider(InstantiatePrefab(PlatformerPath("blue", "pipe_straight_A_blue"), "Blue_Pipe", new Vector3(-21f, 0.08f, -12.94f), Quaternion.identity, Vector3.one, platforms), new Vector3(0f, 0.9f, 0f), new Vector3(1.25f, 1.8f, 1.25f));
-            AddSimpleBoxCollider(InstantiatePrefab(PlatformerPath("red", "pipe_straight_A_red"), "Red_Pipe", new Vector3(21f, 0.08f, 12.76f), Quaternion.identity, Vector3.one, platforms), new Vector3(0f, 0.9f, 0f), new Vector3(1.25f, 1.8f, 1.25f));
+            var bluePipe = InstantiatePrefab(PlatformerPath("blue", "pipe_straight_A_blue"), "Blue_Pipe", new Vector3(-21f, 0.08f, -12.94f), Quaternion.identity, Vector3.one, platforms);
+            AddSimpleBoxCollider(bluePipe, new Vector3(0f, 0.9f, 0f), new Vector3(1.25f, 1.8f, 1.25f));
+            ConfigureWorldGimmick(
+                bluePipe, DemoWorldGimmickKind.PipeLauncher, DemoTeam.Blue, palette["BlueAccent"],
+                new Vector3(0f, 2.32f, 0f), new Vector3(0.32f, 0.32f, 0.32f),
+                new Vector3(0f, 2.08f, 0f), new Vector3(1.45f, 0.42f, 1.45f), WindHitPath,
+                2.5f, 0f, 0f, 4.2f, 8.5f, new Vector3(1f, 0f, 0.32f), 0.28f);
+
+            var redPipe = InstantiatePrefab(PlatformerPath("red", "pipe_straight_A_red"), "Red_Pipe", new Vector3(21f, 0.08f, 12.76f), Quaternion.identity, Vector3.one, platforms);
+            AddSimpleBoxCollider(redPipe, new Vector3(0f, 0.9f, 0f), new Vector3(1.25f, 1.8f, 1.25f));
+            ConfigureWorldGimmick(
+                redPipe, DemoWorldGimmickKind.PipeLauncher, DemoTeam.Red, palette["RedAccent"],
+                new Vector3(0f, 2.32f, 0f), new Vector3(0.32f, 0.32f, 0.32f),
+                new Vector3(0f, 2.08f, 0f), new Vector3(1.45f, 0.42f, 1.45f), WindHitPath,
+                2.5f, 0f, 0f, 4.2f, 8.5f, new Vector3(-1f, 0f, -0.32f), 0.28f);
             InstantiatePrefab(PlatformerPath("yellow", "floor_spikes_trap_4x4x1_yellow"), "North_Spike_Trap", new Vector3(0f, 1.55f, 13.2f), Quaternion.identity, new Vector3(0.8f, 0.8f, 0.8f), platforms);
             InstantiatePrefab(PlatformerPath("yellow", "floor_spikes_trap_4x4x1_yellow"), "South_Spike_Trap", new Vector3(0f, 1.55f, -13.2f), Quaternion.identity, new Vector3(0.8f, 0.8f, 0.8f), platforms);
-            InstantiatePrefab(PlatformerPath("blue", "flag_A_blue"), "Blue_Flag_Imported", new Vector3(-22.2f, 0.08f, 13.7f), Quaternion.identity, Vector3.one, platforms);
-            InstantiatePrefab(PlatformerPath("red", "flag_A_red"), "Red_Flag_Imported", new Vector3(22.2f, 0.08f, 13.7f), Quaternion.identity, Vector3.one, platforms);
-            InstantiatePrefab(PlatformerPath("blue", "spring_pad_blue"), "Blue_Jump_Pad", new Vector3(-17f, 0.08f, -12.5f), Quaternion.identity, Vector3.one, platforms);
-            InstantiatePrefab(PlatformerPath("red", "spring_pad_red"), "Red_Jump_Pad", new Vector3(17f, 0.08f, 12.5f), Quaternion.identity, Vector3.one, platforms);
+            var blueFlag = InstantiatePrefab(PlatformerPath("blue", "flag_A_blue"), "Blue_Flag_Imported", new Vector3(-22.2f, 0.08f, 13.7f), Quaternion.identity, Vector3.one, platforms);
+            ConfigureWorldGimmick(
+                blueFlag, DemoWorldGimmickKind.TeamFlag, DemoTeam.Blue, palette["BlueAccent"],
+                new Vector3(0f, 2.65f, 0f), new Vector3(0.3f, 0.3f, 0.3f),
+                new Vector3(0f, 1.3f, 0f), new Vector3(3.1f, 2.6f, 3.1f), WaterHitPath,
+                12f, 35f, 3f, 0f, 0f, Vector3.zero);
+
+            var redFlag = InstantiatePrefab(PlatformerPath("red", "flag_A_red"), "Red_Flag_Imported", new Vector3(22.2f, 0.08f, 13.7f), Quaternion.identity, Vector3.one, platforms);
+            ConfigureWorldGimmick(
+                redFlag, DemoWorldGimmickKind.TeamFlag, DemoTeam.Red, palette["RedAccent"],
+                new Vector3(0f, 2.65f, 0f), new Vector3(0.3f, 0.3f, 0.3f),
+                new Vector3(0f, 1.3f, 0f), new Vector3(3.1f, 2.6f, 3.1f), FireHitPath,
+                12f, 35f, 3f, 0f, 0f, Vector3.zero);
+
+            var blueJumpPad = InstantiatePrefab(PlatformerPath("blue", "spring_pad_blue"), "Blue_Jump_Pad", new Vector3(-17f, 0.08f, -12.5f), Quaternion.identity, Vector3.one, platforms);
+            AddSimpleBoxCollider(blueJumpPad, new Vector3(0f, 0.1f, 0f), new Vector3(1.8f, 0.2f, 1.8f));
+            ConfigureWorldGimmick(
+                blueJumpPad, DemoWorldGimmickKind.JumpPad, DemoTeam.Blue, palette["BlueAccent"],
+                new Vector3(0f, 0.48f, 0f), new Vector3(0.24f, 0.24f, 0.24f),
+                new Vector3(0f, 0.48f, 0f), new Vector3(2.1f, 0.85f, 2.1f), WindHitPath,
+                1.4f, 0f, 0f, 4.8f, 2.5f, new Vector3(1f, 0f, 0.25f));
+
+            var redJumpPad = InstantiatePrefab(PlatformerPath("red", "spring_pad_red"), "Red_Jump_Pad", new Vector3(17f, 0.08f, 12.5f), Quaternion.identity, Vector3.one, platforms);
+            AddSimpleBoxCollider(redJumpPad, new Vector3(0f, 0.1f, 0f), new Vector3(1.8f, 0.2f, 1.8f));
+            ConfigureWorldGimmick(
+                redJumpPad, DemoWorldGimmickKind.JumpPad, DemoTeam.Red, palette["RedAccent"],
+                new Vector3(0f, 0.48f, 0f), new Vector3(0.24f, 0.24f, 0.24f),
+                new Vector3(0f, 0.48f, 0f), new Vector3(2.1f, 0.85f, 2.1f), WindHitPath,
+                1.4f, 0f, 0f, 4.8f, 2.5f, new Vector3(-1f, 0f, -0.25f));
 
             AddSimpleBoxCollider(InstantiatePrefab(PlatformerPath("blue", "barrier_4x1x2_blue"), "Blue_Mid_Cover_North", new Vector3(-15f, 0.08f, 8f), Quaternion.Euler(0f, 90f, 0f), Vector3.one, platforms), new Vector3(0f, 0.7f, 0f), new Vector3(4f, 1.4f, 1f));
             AddSimpleBoxCollider(InstantiatePrefab(PlatformerPath("blue", "barrier_4x1x2_blue"), "Blue_Mid_Cover_South", new Vector3(-15f, 0.08f, -8f), Quaternion.Euler(0f, 90f, 0f), Vector3.one, platforms), new Vector3(0f, 0.7f, 0f), new Vector3(4f, 1.4f, 1f));
@@ -400,26 +442,94 @@ namespace ActionHunters.Editor
         private static void CreateElementalVfxAnchors(Transform root, IReadOnlyDictionary<string, Material> palette)
         {
             var anchors = CreateGroup("AssetReferences_PixPlays_ElementalSpells", root);
-            CreateVfxAnchor("Water_Shield", "Assets/PixPlays/ElementalShields/WaterShield/Version_BuiltIn/WaterShield.prefab", new Vector3(-5f, 1.35f, 0f), palette["WaterVfx"], anchors, 7f);
-            CreateVfxAnchor("Fire_Projectile", "Assets/PixPlays/ElementalProjectiles/Fireball/Version_BuiltIn/Fireball.prefab", new Vector3(5f, 1.35f, 0f), palette["FireVfx"], anchors, 7f);
-            CreateVfxAnchor("Wind_Beam", "Assets/PixPlays/ElementalBeams/WindBeam/Version_BuiltIn/WindBeam.prefab", new Vector3(0f, 2.2f, 5f), palette["AirVfx"], anchors, 5f);
-            CreateVfxAnchor("Earth_AOE", "Assets/PixPlays/ElementalAOE/EarthAOE/Version_BuiltIn/EarthSlamSpikesAoeVFX.prefab", new Vector3(0f, 2.2f, -5f), palette["EarthVfx"], anchors, 5f);
-            anchors.gameObject.SetActive(false);
+            CreateElementalStation(
+                "Water_Shield", DemoWorldGimmickKind.WaterShield, WaterShieldPath, new Vector3(-5f, 0.12f, 0f),
+                palette["WaterVfx"], anchors, 10f, 28f, 6f, 0f, 0f, Vector3.zero);
+            CreateElementalStation(
+                "Fire_Projectile", DemoWorldGimmickKind.FireProjectile, FireProjectilePath, new Vector3(5f, 0.12f, 0f),
+                palette["FireVfx"], anchors, 8f, 58f, 14f, 0f, 0f, Vector3.zero);
+            CreateElementalStation(
+                "Wind_Beam", DemoWorldGimmickKind.WindBeam, WindBeamPath, new Vector3(0f, 0.12f, 5f),
+                palette["AirVfx"], anchors, 5f, 0f, 0f, 3.5f, 8.5f, Vector3.back);
+            CreateElementalStation(
+                "Earth_AOE", DemoWorldGimmickKind.EarthAoe, EarthAoePath, new Vector3(0f, 0.12f, -5f),
+                palette["EarthVfx"], anchors, 9f, 42f, 4.5f, 0f, 0f, Vector3.zero);
         }
 
-        private static void CreateVfxAnchor(string name, string prefabPath, Vector3 position, Material material, Transform parent, float lightRange)
+        private static void CreateElementalStation(
+            string name,
+            DemoWorldGimmickKind kind,
+            string prefabPath,
+            Vector3 position,
+            Material material,
+            Transform parent,
+            float cooldown,
+            float power,
+            float radius,
+            float launchHeight,
+            float launchSpeed,
+            Vector3 launchDirection)
         {
             var anchor = CreateGroup(name, parent);
             anchor.localPosition = position;
-            CreateCylinder("VFX_Pedestal", new Vector3(0f, -0.12f, 0f), new Vector3(0.75f, 0.08f, 0.75f), material, anchor, GeneratedColliderMode.None);
-            InstantiatePrefab(prefabPath, name + "_PixPlays_Prefab", Vector3.zero, Quaternion.identity, Vector3.one, anchor);
+            CreateCylinder("Pickup_Pedestal", new Vector3(0f, 0.1f, 0f), new Vector3(1f, 0.1f, 1f), material, anchor);
+            ConfigureWorldGimmick(
+                anchor.gameObject, kind, DemoTeam.Neutral, material,
+                new Vector3(0f, 1.08f, 0f), new Vector3(0.52f, 0.52f, 0.52f),
+                new Vector3(0f, 0.95f, 0f), new Vector3(2.2f, 1.9f, 2.2f), prefabPath,
+                cooldown, power, radius, launchHeight, launchSpeed, launchDirection);
+        }
 
-            var pointLight = anchor.gameObject.AddComponent<Light>();
+        private static void ConfigureWorldGimmick(
+            GameObject target,
+            DemoWorldGimmickKind kind,
+            DemoTeam owningTeam,
+            Material material,
+            Vector3 readyVisualPosition,
+            Vector3 readyVisualScale,
+            Vector3 triggerCenter,
+            Vector3 triggerSize,
+            string effectPrefabPath,
+            float cooldown,
+            float power,
+            float radius,
+            float launchHeight,
+            float launchSpeed,
+            Vector3 launchDirection,
+            float activationDelay = 0f)
+        {
+            var trigger = target.AddComponent<BoxCollider>();
+            trigger.center = triggerCenter;
+            trigger.size = triggerSize;
+            trigger.isTrigger = true;
+
+            var rigidbody = target.GetComponent<Rigidbody>();
+            if (rigidbody == null)
+            {
+                rigidbody = target.AddComponent<Rigidbody>();
+            }
+
+            rigidbody.isKinematic = true;
+            rigidbody.useGravity = false;
+
+            var readyVisual = CreateSphere("Gimmick_Ready_Indicator", readyVisualPosition, readyVisualScale, material, target.transform);
+            var readyCollider = readyVisual.GetComponent<Collider>();
+            if (readyCollider != null)
+            {
+                Object.DestroyImmediate(readyCollider);
+            }
+
+            var pointLight = target.AddComponent<Light>();
             pointLight.type = LightType.Point;
             pointLight.color = material.color;
-            pointLight.intensity = 2.2f;
-            pointLight.range = lightRange;
+            pointLight.intensity = 2.1f;
+            pointLight.range = kind is DemoWorldGimmickKind.WaterShield or DemoWorldGimmickKind.FireProjectile ? 6f : 4.5f;
             pointLight.shadows = LightShadows.None;
+
+            var gimmick = target.AddComponent<DemoWorldGimmick>();
+            gimmick.Configure(
+                kind, owningTeam, trigger, readyVisual.transform, pointLight, LoadRequiredPrefab(effectPrefabPath),
+                cooldown, power, radius, launchHeight, launchSpeed, launchDirection, activationDelay);
         }
 
         private static void CreateDemoVerticalSlice(Transform root, DemoHud hud)
@@ -570,13 +680,14 @@ namespace ActionHunters.Editor
         private static RuntimeAnimatorController GetOrCreateRoleAnimatorController(DemoRole role)
         {
             var path = $"{AnimationsPath}/{role}.controller";
+            var root = "Assets/KayKit/Characters/Animations/Animations/Rig_Medium";
             var existing = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
             if (existing != null)
             {
+                EnsureJumpAnimatorState(existing, root);
                 return existing;
             }
 
-            var root = "Assets/KayKit/Characters/Animations/Animations/Rig_Medium";
             var attackPath = role switch
             {
                 DemoRole.Guardian => $"{root}/Combat Melee/Melee_1H_Attack_Slice_Horizontal.anim",
@@ -596,6 +707,7 @@ namespace ActionHunters.Editor
             controller.AddParameter("Speed", AnimatorControllerParameterType.Float);
             controller.AddParameter("Attack", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Skill", AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("Jump", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Hit", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Dead", AnimatorControllerParameterType.Bool);
 
@@ -605,12 +717,14 @@ namespace ActionHunters.Editor
             var attack = stateMachine.AddState("Attack", new Vector3(480f, 150f));
             var skill = stateMachine.AddState("Skill", new Vector3(480f, 240f));
             var hit = stateMachine.AddState("Hit", new Vector3(240f, 240f));
+            var jump = stateMachine.AddState("Jump", new Vector3(690f, 60f));
             var death = stateMachine.AddState("Death", new Vector3(20f, 240f));
             idle.motion = LoadRequiredClip($"{root}/General/Idle_A.anim");
             run.motion = LoadRequiredClip($"{root}/Movement Basic/Running_A.anim");
             attack.motion = LoadRequiredClip(attackPath);
             skill.motion = LoadRequiredClip(skillPath);
             hit.motion = LoadRequiredClip($"{root}/General/Hit_A.anim");
+            jump.motion = LoadRequiredClip($"{root}/Movement Basic/Jump_Full_Short.anim");
             death.motion = LoadRequiredClip($"{root}/General/Death_A.anim");
             stateMachine.defaultState = idle;
 
@@ -619,9 +733,11 @@ namespace ActionHunters.Editor
             AddTriggerTransition(stateMachine, attack, "Attack");
             AddTriggerTransition(stateMachine, skill, "Skill");
             AddTriggerTransition(stateMachine, hit, "Hit");
+            AddTriggerTransition(stateMachine, jump, "Jump");
             AddExitTransition(attack, idle, 0.84f);
             AddExitTransition(skill, idle, 0.9f);
             AddExitTransition(hit, idle, 0.82f);
+            AddExitTransition(jump, idle, 0.92f);
 
             var deathTransition = stateMachine.AddAnyStateTransition(death);
             deathTransition.hasExitTime = false;
@@ -635,6 +751,79 @@ namespace ActionHunters.Editor
 
             EditorUtility.SetDirty(controller);
             return controller;
+        }
+
+        private static void EnsureJumpAnimatorState(AnimatorController controller, string animationRoot)
+        {
+            var hasJumpParameter = false;
+            var parameters = controller.parameters;
+            for (var index = 0; index < parameters.Length; index++)
+            {
+                if (parameters[index].name == "Jump")
+                {
+                    hasJumpParameter = true;
+                    break;
+                }
+            }
+
+            if (!hasJumpParameter)
+            {
+                controller.AddParameter("Jump", AnimatorControllerParameterType.Trigger);
+            }
+
+            var stateMachine = controller.layers[0].stateMachine;
+            AnimatorState idle = null;
+            AnimatorState jump = null;
+            var states = stateMachine.states;
+            for (var index = 0; index < states.Length; index++)
+            {
+                if (states[index].state.name == "Idle") idle = states[index].state;
+                if (states[index].state.name == "Jump") jump = states[index].state;
+            }
+
+            if (jump == null)
+            {
+                jump = stateMachine.AddState("Jump", new Vector3(690f, 60f));
+            }
+
+            jump.motion = LoadRequiredClip($"{animationRoot}/Movement Basic/Jump_Full_Short.anim");
+
+            var hasJumpEntry = false;
+            var anyTransitions = stateMachine.anyStateTransitions;
+            for (var index = 0; index < anyTransitions.Length; index++)
+            {
+                if (anyTransitions[index].destinationState == jump)
+                {
+                    hasJumpEntry = true;
+                    break;
+                }
+            }
+
+            if (!hasJumpEntry)
+            {
+                AddTriggerTransition(stateMachine, jump, "Jump");
+            }
+
+            if (idle != null)
+            {
+                var hasIdleExit = false;
+                var jumpTransitions = jump.transitions;
+                for (var index = 0; index < jumpTransitions.Length; index++)
+                {
+                    if (jumpTransitions[index].destinationState == idle)
+                    {
+                        hasIdleExit = true;
+                        break;
+                    }
+                }
+
+                if (!hasIdleExit)
+                {
+                    AddExitTransition(jump, idle, 0.92f);
+                }
+            }
+
+            EditorUtility.SetDirty(controller);
         }
 
         private static void AddFloatTransition(AnimatorState from, AnimatorState to, string parameter, AnimatorConditionMode mode, float threshold)
@@ -731,12 +920,12 @@ namespace ActionHunters.Editor
 
             var objectivePanel = CreatePanel("Objective_Card", hud.transform, new Vector2(0.5f, 0f), new Vector2(920f, 104f), new Vector2(0f, 24f), Color.white, resourceBar);
             var objective = CreateUiText("Objective", objectivePanel, "HUNT MONSTERS FOR GOLD  |  DEFEAT RED HUNTERS FOR SCORE", 19, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.67f), new Vector2(860f, 34f), Vector2.zero, new Color(1f, 0.82f, 0.3f));
-            var help = CreateUiText("Help", objectivePanel, "WASD MOVE | LMB ATTACK | SPACE SKILL | 1-4 SWITCH | E HIRE | F1/H RULES | R RESTART", 17, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.24f), new Vector2(880f, 30f), Vector2.zero, new Color(0.75f, 0.82f, 0.92f));
+            var help = CreateUiText("Help", objectivePanel, "WASD/STICK MOVE | SPACE/A JUMP | LMB/RT ATTACK | C/RB SKILL | 1-4/DPAD | E/Y HIRE | F1/H", 17, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.24f), new Vector2(880f, 30f), Vector2.zero, new Color(0.75f, 0.82f, 0.92f));
 
             var tutorialCard = CreatePanel("Tutorial_Step_Card", hud.transform, new Vector2(0.5f, 1f), new Vector2(720f, 122f), new Vector2(0f, -150f), new Color(0.025f, 0.045f, 0.08f, 0.94f));
-            var tutorialTitle = CreateUiText("Step_Title", tutorialCard, "1 / 6   MOVE", 22, TextAnchor.MiddleLeft, new Vector2(0f, 1f), new Vector2(530f, 34f), new Vector2(24f, -26f), new Color(1f, 0.82f, 0.25f));
+            var tutorialTitle = CreateUiText("Step_Title", tutorialCard, "1 / 6   MOVE + JUMP", 22, TextAnchor.MiddleLeft, new Vector2(0f, 1f), new Vector2(530f, 34f), new Vector2(24f, -26f), new Color(1f, 0.82f, 0.25f));
             var tutorialProgress = CreateUiText("Step_Progress", tutorialCard, "PROGRESS  0 / 6", 18, TextAnchor.MiddleRight, new Vector2(1f, 1f), new Vector2(190f, 34f), new Vector2(-24f, -26f), new Color(0.64f, 0.76f, 0.92f));
-            var tutorialInstruction = CreateUiText("Step_Instruction", tutorialCard, "Move 1.5m with WASD or the left stick.", 20, TextAnchor.MiddleLeft, new Vector2(0f, 0.5f), new Vector2(670f, 34f), new Vector2(24f, -1f));
+            var tutorialInstruction = CreateUiText("Step_Instruction", tutorialCard, "Move 1.5m with WASD / stick, then jump with SPACE / A.", 20, TextAnchor.MiddleLeft, new Vector2(0f, 0.5f), new Vector2(670f, 34f), new Vector2(24f, -1f));
             var tutorialProgressFill = CreateFilledBar("Tutorial_Progress", tutorialCard, new Vector2(0.5f, 0f), new Vector2(670f, 12f), new Vector2(0f, 14f), new Color(0.08f, 0.12f, 0.2f), new Color(1f, 0.68f, 0.1f));
 
             var toast = CreatePanel("Event_Toast", hud.transform, new Vector2(0.5f, 1f), new Vector2(610f, 56f), new Vector2(0f, -286f), new Color(0.025f, 0.04f, 0.07f, 0.94f));
@@ -751,18 +940,21 @@ namespace ActionHunters.Editor
             var playerSkillFill = CreateFilledBar("Skill", playerCard, new Vector2(0f, 0f), new Vector2(318f, 9f), new Vector2(20f, 18f), new Color(0.06f, 0.08f, 0.13f), new Color(0.2f, 0.65f, 1f));
 
             var rulesOverlay = CreatePanel("Beginner_Rules_Overlay", hud.transform, new Vector2(0.5f, 0.5f), new Vector2(1920f, 1080f), Vector2.zero, new Color(0.008f, 0.012f, 0.025f, 0.9f));
-            var rulesCard = CreatePanel("Rules_Card", rulesOverlay, new Vector2(0.5f, 0.5f), new Vector2(860f, 520f), Vector2.zero, new Color(0.035f, 0.065f, 0.12f, 0.98f));
-            CreateUiText("Rules_Title", rulesCard, "ACTION HUNTERS — BEGINNER GUIDE", 32, TextAnchor.MiddleCenter, new Vector2(0.5f, 1f), new Vector2(790f, 64f), new Vector2(0f, -48f), new Color(1f, 0.78f, 0.18f));
+            var rulesCard = CreatePanel("Rules_Card", rulesOverlay, new Vector2(0.5f, 0.5f), new Vector2(920f, 650f), Vector2.zero, new Color(0.035f, 0.065f, 0.12f, 0.98f));
+            CreateUiText("Rules_Title", rulesCard, "ACTION HUNTERS — BEGINNER GUIDE", 32, TextAnchor.MiddleCenter, new Vector2(0.5f, 1f), new Vector2(850f, 64f), new Vector2(0f, -48f), new Color(1f, 0.78f, 0.18f));
             var ruleBody = "WIN THE 5-MINUTE MATCH WITH MORE SCORE\n\n" +
                            "1. HUNT NEUTRAL MONSTERS  →  +30 GOLD\n" +
-                           "2. RETURN TO BLUE BASE WITH 60 GOLD  →  PRESS E / A TO HIRE\n" +
+                           "2. RETURN TO BLUE BASE WITH 60 GOLD  →  PRESS E / Y TO HIRE\n" +
                            "3. DEFEAT AN ENEMY HUNTER  →  +10 SCORE\n" +
-                           "4. DEFEAT THE CENTER BOSS  →  +60 GOLD AND +5 SCORE\n\n" +
+                           "4. DEFEAT THE CENTER BOSS  →  +60 GOLD AND +5 SCORE\n" +
+                           "5. CAPTURE THE ENEMY FLAG  →  +5 SCORE; YOUR FLAG HEALS + GUARDS\n" +
+                           "6. TOUCH ELEMENT STATIONS FOR POWERS; PADS AND PIPES LAUNCH YOU\n\n" +
+                           "MOVE: WASD / STICK    JUMP: SPACE / A    ATTACK: LMB / RT    SKILL: C / RB\n" +
                            "TIED AT 00:00?  SUDDEN DEATH STARTS FOR 60 SECONDS.\n" +
                            "THE FIRST HUNTER KNOCKOUT WINS.";
-            var rulesBody = CreateUiText("Rules_Body", rulesCard, ruleBody, 21, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), new Vector2(760f, 320f), new Vector2(0f, -10f), new Color(0.88f, 0.93f, 1f));
-            rulesBody.lineSpacing = 1.18f;
-            CreateUiText("Rules_Confirm", rulesCard, "CLICK / ENTER / SPACE / GAMEPAD A TO START     •     F1 / H / SELECT OPENS THIS GUIDE", 19, TextAnchor.MiddleCenter, new Vector2(0.5f, 0f), new Vector2(790f, 54f), new Vector2(0f, 34f), new Color(0.28f, 1f, 0.55f));
+            var rulesBody = CreateUiText("Rules_Body", rulesCard, ruleBody, 18, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), new Vector2(820f, 445f), new Vector2(0f, -8f), new Color(0.88f, 0.93f, 1f));
+            rulesBody.lineSpacing = 1.12f;
+            CreateUiText("Rules_Confirm", rulesCard, "CLICK / ENTER / SPACE / GAMEPAD A TO START     •     F1 / H / SELECT OPENS THIS GUIDE", 19, TextAnchor.MiddleCenter, new Vector2(0.5f, 0f), new Vector2(850f, 54f), new Vector2(0f, 34f), new Color(0.28f, 1f, 0.55f));
 
             var demoHud = hud.AddComponent<DemoHud>();
             demoHud.Configure(

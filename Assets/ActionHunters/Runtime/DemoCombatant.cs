@@ -27,10 +27,14 @@ namespace ActionHunters.Runtime
         private CharacterController _characterController;
         private DemoCombatantPresentation _presentation;
         private float _verticalVelocity;
+        private Vector3 _externalVelocity;
+        private float _groundedGraceRemaining;
+        private float _jumpBufferRemaining;
         private float _deathVisualRemaining;
         private float _aiDetourRemaining;
         private int _aiDetourSign = 1;
         private CollisionFlags _lastMoveCollisions;
+        private CollisionFlags _verticalMoveCollisions;
 
         public DemoTeam Team => team;
         public DemoRole Role => role;
@@ -41,6 +45,10 @@ namespace ActionHunters.Runtime
         public float MaxHealth => _stats.maxHealth;
         public float HealthNormalized => _stats.maxHealth <= 0f ? 0f : Mathf.Clamp01(_health / _stats.maxHealth);
         public float SkillNormalized => _stats.skillCooldown <= 0f ? 1f : 1f - Mathf.Clamp01(_skillRemaining / _stats.skillCooldown);
+        public float VerticalVelocity => _verticalVelocity;
+        public bool IsGrounded => _characterController != null && _characterController.enabled &&
+                                  (_characterController.isGrounded || (_verticalMoveCollisions & CollisionFlags.Below) != 0);
+        public bool CanUseWorldGimmicks => CanMove;
 
         public void Configure(DemoTeam configuredTeam, DemoRole configuredRole, int configuredSlot, Vector3 configuredSpawn)
         {
@@ -162,6 +170,11 @@ namespace ActionHunters.Runtime
             var movedDistance = MoveDirection(direction, deltaTime);
             if ((_lastMoveCollisions & CollisionFlags.Sides) != 0 && movedDistance < expectedDistance * 0.8f)
             {
+                if (IsGrounded)
+                {
+                    TryJump();
+                }
+
                 _aiDetourSign *= -1;
                 _aiDetourRemaining = 0.7f;
             }
@@ -252,6 +265,68 @@ namespace ActionHunters.Runtime
             }
         }
 
+        public void GrantShield(float duration)
+        {
+            if (_isAlive && duration > 0f)
+            {
+                _damageReductionRemaining = Mathf.Max(_damageReductionRemaining, duration);
+                _presentation?.PlayHeal();
+            }
+        }
+
+        public bool TryElementalStrike(float damage, float range)
+        {
+            if (!CanAct || damage <= 0f || range <= 0f)
+            {
+                return false;
+            }
+
+            var target = _match.FindClosestHostile(this, range);
+            if (target == null || !HasLineOfSightTo(target))
+            {
+                return false;
+            }
+
+            var direction = target.transform.position - transform.position;
+            Face(direction);
+            _presentation?.PlayAttack(target.transform.position);
+            target.ReceiveDamage(damage, this);
+            return true;
+        }
+
+        public bool TryJump()
+        {
+            if (!CanMove)
+            {
+                return false;
+            }
+
+            _jumpBufferRemaining = 0.12f;
+            if (IsGrounded && _verticalVelocity <= 0f)
+            {
+                _groundedGraceRemaining = 0.12f;
+            }
+
+            return TryConsumeBufferedJump();
+        }
+
+        public void LaunchToHeight(float height, Vector3 horizontalVelocity)
+        {
+            if (!CanMove || height <= 0f)
+            {
+                return;
+            }
+
+            var gravity = Mathf.Abs(Physics.gravity.y) * _match.Config.GravityMultiplier;
+            _verticalVelocity = Mathf.Sqrt(2f * gravity * height);
+            horizontalVelocity.y = 0f;
+            _externalVelocity = horizontalVelocity;
+            _jumpBufferRemaining = 0f;
+            _groundedGraceRemaining = 0f;
+            _verticalMoveCollisions = CollisionFlags.None;
+            _presentation?.PlayJump();
+        }
+
         public void SetSelected(bool selected)
         {
             _presentation?.SetSelected(selected);
@@ -297,7 +372,7 @@ namespace ActionHunters.Runtime
 
         private bool UseGuardianSkill()
         {
-            _damageReductionRemaining = 3f;
+            _damageReductionRemaining = Mathf.Max(_damageReductionRemaining, 3f);
             var enemies = _match.GetHostilesInRange(this, 3.5f);
             for (var index = 0; index < enemies.Count; index++)
             {
@@ -461,6 +536,10 @@ namespace ActionHunters.Runtime
                 : _match.Config.HunterRespawnDelay;
             _deathVisualRemaining = 0.85f;
             _verticalVelocity = 0f;
+            _externalVelocity = Vector3.zero;
+            _groundedGraceRemaining = 0f;
+            _jumpBufferRemaining = 0f;
+            _verticalMoveCollisions = CollisionFlags.None;
             if (_characterController != null)
             {
                 _characterController.enabled = false;
@@ -488,9 +567,13 @@ namespace ActionHunters.Runtime
             _skillRemaining = 0f;
             _damageReductionRemaining = 0f;
             _verticalVelocity = -2f;
+            _externalVelocity = Vector3.zero;
+            _groundedGraceRemaining = 0f;
+            _jumpBufferRemaining = 0f;
             _deathVisualRemaining = 0f;
             _aiDetourRemaining = 0f;
             _lastMoveCollisions = CollisionFlags.None;
+            _verticalMoveCollisions = CollisionFlags.None;
             _rewardGranted = false;
             _isAlive = true;
             SetVisuals(true);
@@ -509,16 +592,63 @@ namespace ActionHunters.Runtime
                 return;
             }
 
-            if (_characterController.isGrounded && _verticalVelocity < 0f)
+            var grounded = _verticalVelocity <= 0f && IsGrounded;
+            if (grounded)
             {
-                _verticalVelocity = -2f;
+                _groundedGraceRemaining = 0.12f;
             }
             else
             {
-                _verticalVelocity = Mathf.Max(_verticalVelocity + Physics.gravity.y * 2.4f * deltaTime, -35f);
+                _groundedGraceRemaining = Mathf.Max(0f, _groundedGraceRemaining - deltaTime);
             }
 
-            _characterController.Move(Vector3.up * (_verticalVelocity * deltaTime));
+            _jumpBufferRemaining = Mathf.Max(0f, _jumpBufferRemaining - deltaTime);
+            var jumped = TryConsumeBufferedJump();
+            float verticalDistance;
+            if (grounded && !jumped)
+            {
+                _verticalVelocity = -2f;
+                verticalDistance = _verticalVelocity * deltaTime;
+            }
+            else
+            {
+                var previousVerticalVelocity = _verticalVelocity;
+                _verticalVelocity = Mathf.Max(
+                    _verticalVelocity + Physics.gravity.y * _match.Config.GravityMultiplier * deltaTime,
+                    -35f);
+                verticalDistance = (previousVerticalVelocity + _verticalVelocity) * 0.5f * deltaTime;
+            }
+
+            var motion = _externalVelocity * deltaTime + Vector3.up * verticalDistance;
+            _verticalMoveCollisions = _characterController.Move(motion);
+            if ((_verticalMoveCollisions & CollisionFlags.Above) != 0 && _verticalVelocity > 0f)
+            {
+                _verticalVelocity = 0f;
+            }
+
+            if ((_verticalMoveCollisions & CollisionFlags.Below) != 0 && _verticalVelocity < 0f)
+            {
+                _verticalVelocity = -2f;
+                _groundedGraceRemaining = 0.12f;
+            }
+
+            _externalVelocity = Vector3.MoveTowards(_externalVelocity, Vector3.zero, 7f * deltaTime);
+        }
+
+        private bool TryConsumeBufferedJump()
+        {
+            if (_jumpBufferRemaining <= 0f || _groundedGraceRemaining <= 0f || _match == null)
+            {
+                return false;
+            }
+
+            var gravity = Mathf.Abs(Physics.gravity.y) * _match.Config.GravityMultiplier;
+            _verticalVelocity = Mathf.Sqrt(2f * gravity * _match.Config.JumpHeight);
+            _jumpBufferRemaining = 0f;
+            _groundedGraceRemaining = 0f;
+            _verticalMoveCollisions = CollisionFlags.None;
+            _presentation?.PlayJump();
+            return true;
         }
 
         private void ConfigureCharacterController()

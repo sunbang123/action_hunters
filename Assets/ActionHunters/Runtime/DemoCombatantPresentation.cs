@@ -10,6 +10,7 @@ namespace ActionHunters.Runtime
         private static readonly int SpeedParameter = Animator.StringToHash("Speed");
         private static readonly int AttackParameter = Animator.StringToHash("Attack");
         private static readonly int SkillParameter = Animator.StringToHash("Skill");
+        private static readonly int JumpParameter = Animator.StringToHash("Jump");
         private static readonly int HitParameter = Animator.StringToHash("Hit");
         private static readonly int DeadParameter = Animator.StringToHash("Dead");
         private static readonly int BaseColorProperty = Shader.PropertyToID("_BaseColor");
@@ -38,8 +39,10 @@ namespace ActionHunters.Runtime
         private Vector3 _lastWorldPosition;
         private float _hitFlashRemaining;
         private float _attackPulseRemaining;
+        private float _jumpPulseRemaining;
         private bool _selected;
         private bool _initialized;
+        private bool _hasJumpParameter;
 
         public void Configure(
             Transform configuredVisualRoot,
@@ -85,6 +88,7 @@ namespace ActionHunters.Runtime
             }
 
             _lastWorldPosition = transform.position;
+            _hasJumpParameter = HasAnimatorParameter(animator, JumpParameter);
             PlaySpawn();
         }
 
@@ -134,6 +138,16 @@ namespace ActionHunters.Runtime
             _effectPool?.Play(healEffectPrefab, transform.position + Vector3.up * 0.6f, Quaternion.identity);
         }
 
+        public void PlayJump()
+        {
+            if (animator != null && _hasJumpParameter)
+            {
+                animator.SetTrigger(JumpParameter);
+            }
+
+            _jumpPulseRemaining = 0.28f;
+        }
+
         public void PlayDeath()
         {
             if (animator != null)
@@ -149,6 +163,7 @@ namespace ActionHunters.Runtime
             ApplyHitFlash(false);
             _hitFlashRemaining = 0f;
             _attackPulseRemaining = 0f;
+            _jumpPulseRemaining = 0f;
             _lastWorldPosition = transform.position;
             if (visualRoot != null)
             {
@@ -198,7 +213,30 @@ namespace ActionHunters.Runtime
             }
 
             _attackPulseRemaining = Mathf.Max(0f, _attackPulseRemaining - Time.deltaTime);
+            _jumpPulseRemaining = Mathf.Max(0f, _jumpPulseRemaining - Time.deltaTime);
+            UpdateAirborneMotion();
             UpdateWorldStatus();
+        }
+
+        private void UpdateAirborneMotion()
+        {
+            if (visualRoot == null || animator == null || !_owner.IsAlive)
+            {
+                return;
+            }
+
+            var airborne = !_owner.IsGrounded && Mathf.Abs(_owner.VerticalVelocity) > 0.2f;
+            var tilt = airborne ? Mathf.Clamp(-_owner.VerticalVelocity * 0.7f, -9f, 9f) : 0f;
+            visualRoot.localRotation = Quaternion.Slerp(
+                visualRoot.localRotation,
+                _visualBaseRotation * Quaternion.Euler(tilt, 0f, 0f),
+                1f - Mathf.Exp(-11f * Time.deltaTime));
+
+            var pulse = _jumpPulseRemaining > 0f ? new Vector3(0.86f, 1.16f, 0.86f) : Vector3.one;
+            visualRoot.localScale = Vector3.Lerp(
+                visualRoot.localScale,
+                Vector3.Scale(_visualBaseScale, pulse),
+                14f * Time.deltaTime);
         }
 
         private void UpdateProceduralMotion(float speed)
@@ -385,6 +423,25 @@ namespace ActionHunters.Runtime
 
             material.renderQueue = (int)RenderQueue.Transparent;
             return material;
+        }
+
+        private static bool HasAnimatorParameter(Animator targetAnimator, int parameterHash)
+        {
+            if (targetAnimator == null)
+            {
+                return false;
+            }
+
+            var parameters = targetAnimator.parameters;
+            for (var index = 0; index < parameters.Length; index++)
+            {
+                if (parameters[index].nameHash == parameterHash)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void OnDestroy()

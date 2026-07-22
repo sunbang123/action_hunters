@@ -1,5 +1,6 @@
 using ActionHunters.Runtime;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace ActionHunters.Tests
 {
@@ -38,7 +39,8 @@ namespace ActionHunters.Tests
             Assert.That(flow.Report(DemoTutorialSignal.BasicAttackHit), Is.False);
             Assert.That(flow.CurrentStep, Is.EqualTo(DemoTutorialStep.Move));
             Assert.That(flow.Report(DemoTutorialSignal.Moved, 1f), Is.False);
-            Assert.That(flow.Report(DemoTutorialSignal.Moved, 0.5f), Is.True);
+            Assert.That(flow.Report(DemoTutorialSignal.Moved, 0.5f), Is.False);
+            Assert.That(flow.Report(DemoTutorialSignal.Jumped), Is.True);
             Assert.That(flow.CurrentStep, Is.EqualTo(DemoTutorialStep.BasicAttack));
             Assert.That(flow.Report(DemoTutorialSignal.BasicAttackHit), Is.True);
             Assert.That(flow.Report(DemoTutorialSignal.SkillUsed), Is.True);
@@ -54,6 +56,7 @@ namespace ActionHunters.Tests
             var flow = new DemoTutorialFlow();
             flow.Reset();
             flow.Report(DemoTutorialSignal.Moved, 2f);
+            flow.Report(DemoTutorialSignal.Jumped);
             flow.Report(DemoTutorialSignal.BasicAttackHit);
             flow.Report(DemoTutorialSignal.SkillUsed);
             flow.Report(DemoTutorialSignal.MonsterDefeated);
@@ -63,6 +66,23 @@ namespace ActionHunters.Tests
             Assert.That(flow.Report(DemoTutorialSignal.Moved, 50f), Is.False);
             Assert.That(flow.CurrentStep, Is.EqualTo(DemoTutorialStep.Complete));
             Assert.That(flow.StepProgress, Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void DemoDefaults_ProvideJumpAndFlagRules()
+        {
+            var config = ScriptableObject.CreateInstance<DemoGameConfig>();
+            try
+            {
+                config.ApplyDemoDefaults();
+                Assert.That(config.JumpHeight, Is.EqualTo(3.2f));
+                Assert.That(config.GravityMultiplier, Is.EqualTo(2.4f));
+                Assert.That(config.FlagCaptureScore, Is.EqualTo(5));
+            }
+            finally
+            {
+                Object.DestroyImmediate(config);
+            }
         }
     }
 }

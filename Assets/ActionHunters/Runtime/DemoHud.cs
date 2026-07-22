@@ -94,9 +94,9 @@ namespace ActionHunters.Runtime
             objective.text = match.State == DemoMatchState.Result
                 ? match.ResultMessage
                 : match.CurrentTutorialStep == DemoTutorialStep.HireHunter && match.IsPlayerNearBase
-                    ? "BASE READY — PRESS E / GAMEPAD A TO HIRE"
+                    ? "BASE READY — PRESS E / GAMEPAD Y TO HIRE"
                     : match.TutorialInstruction;
-            help.text = "WASD / LEFT STICK MOVE   |   LMB / RT ATTACK   |   SPACE / RB SKILL   |   1-4 / D-PAD SWITCH   |   E / A HIRE   |   F1 / H / SELECT RULES   |   R / START RESTART";
+            help.text = "WASD/STICK MOVE | SPACE/A JUMP | LMB/RT ATTACK | C/RB SKILL | 1-4/DPAD | E/Y HIRE | F1/H";
             RefreshRoster(blueRoster, match.BlueHunters, match.ControlledHunter);
             RefreshRoster(redRoster, match.RedHunters, null);
             RefreshPlayerCard(match.ControlledHunter);

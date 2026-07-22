@@ -21,12 +21,14 @@ namespace ActionHunters.Runtime
 
         private readonly List<DemoCombatant> _allCombatants = new List<DemoCombatant>();
         private readonly List<DemoCombatant> _queryResults = new List<DemoCombatant>();
+        private readonly List<DemoWorldGimmick> _worldGimmicks = new List<DemoWorldGimmick>();
         private readonly Dictionary<DemoCombatant, DemoCombatant> _aiTargets = new Dictionary<DemoCombatant, DemoCombatant>();
         private InputActionMap _playerMap;
         private InputAction _moveAction;
         private InputAction _attackAction;
         private InputAction _interactAction;
         private InputAction _skillAction;
+        private InputAction _jumpAction;
         private InputAction _nextAction;
         private InputAction _previousAction;
         private DemoCombatant _controlledHunter;
@@ -48,6 +50,7 @@ namespace ActionHunters.Runtime
         public int BlueGold => _blueGold;
         public IReadOnlyList<DemoCombatant> BlueHunters => blueHunters;
         public IReadOnlyList<DemoCombatant> RedHunters => redHunters;
+        public IReadOnlyList<DemoWorldGimmick> WorldGimmicks => _worldGimmicks;
         public DemoCombatant ControlledHunter => _controlledHunter;
         public DemoTutorialStep CurrentTutorialStep => tutorial != null ? tutorial.CurrentStep : DemoTutorialStep.Complete;
         public string TutorialInstruction => DemoTutorialFlow.GetInstruction(CurrentTutorialStep);
@@ -91,7 +94,8 @@ namespace ActionHunters.Runtime
             _moveAction = _playerMap.FindAction("Move", true);
             _attackAction = _playerMap.FindAction("Attack", true);
             _interactAction = _playerMap.FindAction("Interact", true);
-            _skillAction = _playerMap.FindAction("Jump", true);
+            _skillAction = _playerMap.FindAction("Crouch", true);
+            _jumpAction = _playerMap.FindAction("Jump", true);
             _nextAction = _playerMap.FindAction("Next", true);
             _previousAction = _playerMap.FindAction("Previous", true);
 
@@ -99,6 +103,13 @@ namespace ActionHunters.Runtime
             _allCombatants.AddRange(blueHunters);
             _allCombatants.AddRange(redHunters);
             _allCombatants.AddRange(monsters);
+
+            _worldGimmicks.Clear();
+            _worldGimmicks.AddRange(FindObjectsByType<DemoWorldGimmick>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+            for (var index = 0; index < _worldGimmicks.Count; index++)
+            {
+                _worldGimmicks[index].Initialize(this);
+            }
         }
 
         private void OnEnable()
@@ -254,6 +265,40 @@ namespace ActionHunters.Runtime
             Debug.Log($"[Action Hunters] {killer.Team} {killer.Role} defeated {defeated.Team} {defeated.Role}.");
         }
 
+        public void OnWorldGimmickActivated(DemoWorldGimmick gimmick, DemoCombatant actor, bool capturedEnemyFlag)
+        {
+            if (gimmick == null || actor == null)
+            {
+                return;
+            }
+
+            var teamColor = actor.Team == DemoTeam.Blue
+                ? new Color(0.2f, 0.72f, 1f)
+                : new Color(1f, 0.3f, 0.24f);
+            var message = gimmick.Kind switch
+            {
+                DemoWorldGimmickKind.WaterShield => "WATER SHIELD  •  HEAL + DAMAGE GUARD",
+                DemoWorldGimmickKind.FireProjectile => "FIRE PROJECTILE  •  NEAREST ENEMY STRUCK",
+                DemoWorldGimmickKind.WindBeam => "WIND BEAM  •  AIR ROUTE LAUNCHED",
+                DemoWorldGimmickKind.EarthAoe => "EARTH AOE  •  SHOCKWAVE + KNOCK-UP",
+                DemoWorldGimmickKind.JumpPad => "JUMP PAD  •  HIGH JUMP",
+                DemoWorldGimmickKind.PipeLauncher => "PIPE CANNON  •  CENTER ROUTE",
+                DemoWorldGimmickKind.TeamFlag when capturedEnemyFlag =>
+                    $"{actor.Team.ToString().ToUpperInvariant()} CAPTURED {gimmick.OwningTeam.ToString().ToUpperInvariant()} FLAG  +{config.FlagCaptureScore}",
+                DemoWorldGimmickKind.TeamFlag => $"{actor.Team.ToString().ToUpperInvariant()} FLAG RALLY  •  HEAL + GUARD",
+                _ => "MAP GIMMICK ACTIVATED"
+            };
+
+            if (gimmick.Kind == DemoWorldGimmickKind.TeamFlag && capturedEnemyFlag)
+            {
+                AddScore(actor.Team, config.FlagCaptureScore);
+            }
+
+            hud.ShowToast(message, teamColor);
+            hud.Refresh(this);
+            Debug.Log($"[Action Hunters] {actor.Team} {actor.Role} activated {gimmick.Kind}.");
+        }
+
         private void StartFreshMatch()
         {
             _blueScore = 0;
@@ -281,6 +326,11 @@ namespace ActionHunters.Runtime
             for (var index = 0; index < monsters.Count; index++)
             {
                 monsters[index].Initialize(this, true);
+            }
+
+            for (var index = 0; index < _worldGimmicks.Count; index++)
+            {
+                _worldGimmicks[index].ResetGimmick();
             }
 
             SelectHunter(0, true, false);
@@ -338,7 +388,6 @@ namespace ActionHunters.Runtime
             var gamepad = Gamepad.current;
             var gamepadAttack = gamepad != null && gamepad.rightTrigger.wasPressedThisFrame;
             var gamepadSkill = gamepad != null && gamepad.rightShoulder.wasPressedThisFrame;
-            var gamepadHire = gamepad != null && gamepad.buttonSouth.wasPressedThisFrame;
             if (WasPressedOutsideGamepad(_attackAction) || gamepadAttack)
             {
                 if (_controlledHunter.TryBasicAttack())
@@ -369,7 +418,7 @@ namespace ActionHunters.Runtime
                 return;
             }
 
-            if (WasPressedOutsideGamepad(_interactAction) || gamepadHire)
+            if (_interactAction.WasPressedThisFrame())
             {
                 TryHireHunter();
             }
@@ -400,6 +449,14 @@ namespace ActionHunters.Runtime
             if (_controlledHunter == null || !_controlledHunter.IsAlive)
             {
                 return false;
+            }
+
+            if (_jumpAction.WasPressedThisFrame())
+            {
+                if (_controlledHunter.TryJump())
+                {
+                    tutorial.Report(DemoTutorialSignal.Jumped);
+                }
             }
 
             var movedDistance = _controlledHunter.Move(ReadMoveInput(), deltaTime);
@@ -501,6 +558,11 @@ namespace ActionHunters.Runtime
 
                 if (target != null && target.IsAlive)
                 {
+                    if (target.transform.position.y - actor.transform.position.y > 0.65f && actor.IsGrounded)
+                    {
+                        actor.TryJump();
+                    }
+
                     if (actor.Role == DemoRole.Ranger)
                     {
                         actor.TrySkill();

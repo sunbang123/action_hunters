@@ -25,6 +25,9 @@ MonoBehaviour:
   bossKillScore: 5
   aiThinkInterval: 0.25
   arenaExtents: {x: 23, y: 15}
+  jumpHeight: 3.2
+  gravityMultiplier: 2.4
+  flagCaptureScore: 5
   roleStats:
   - role: 0
     maxHealth: 230

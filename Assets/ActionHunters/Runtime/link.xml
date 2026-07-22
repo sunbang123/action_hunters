@@ -1,0 +1,6 @@
+<linker>
+  <assembly fullname="Assembly-CSharp">
+    <type fullname="PixPlays.ElementalVFX.ProjectileVfx" preserve="all" />
+    <type fullname="PixPlays.ElementalVFX.VfxData" preserve="all" />
+  </assembly>
+</linker>

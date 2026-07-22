@@ -73,7 +73,7 @@ namespace ActionHunters.Tests
             yield return null;
 
             Assert.That(monster.Health, Is.LessThan(previousHealth));
-            var pooledEffects = Object.FindObjectsByType<DemoPooledEffect>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var pooledEffects = match.EffectPool.GetComponentsInChildren<DemoPooledEffect>(true);
             Assert.That(pooledEffects, Has.Length.GreaterThanOrEqualTo(15));
             Assert.That(pooledEffects.Any(effect => effect.gameObject.activeSelf), Is.True);
             Assert.That(GameObject.Find("World_Health_Bar"), Is.Not.Null);
@@ -103,7 +103,17 @@ namespace ActionHunters.Tests
                 effect.Play(Vector3.zero, Quaternion.identity);
                 yield return null;
                 Assert.That(effect.gameObject.activeSelf, Is.True, $"{effect.name} should be reusable after its first lifetime.");
+
+                effectTimeout = 8f;
+                while (effect.gameObject.activeSelf && effectTimeout > 0f)
+                {
+                    effectTimeout -= Time.deltaTime;
+                    yield return null;
+                }
+
+                Assert.That(effect.gameObject.activeSelf, Is.False, $"{effect.name} should also finish its second lifetime.");
             }
+
         }
     }
 }
